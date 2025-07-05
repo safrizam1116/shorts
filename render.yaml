@@ -1,0 +1,6 @@
+services:
+  - type: worker
+    name: youtube-shorts-uploader
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python auto_uploader.py
