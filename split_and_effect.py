@@ -1,14 +1,22 @@
-from moviepy.editor import VideoFileClip, concatenate_videoclips, vfx
+from moviepy.editor import VideoFileClip, vfx
 import os
 
-def potong_video(source):
+SHORTS_DURATION = 27
+INPUT_FOLDER = 'input'
+OUTPUT_FOLDER = 'output'
+
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+def process_video(source):
     video = VideoFileClip(source)
-    duration = video.duration
-    count = int(duration // 10)
-    
-    for i in range(count):
-        clip = video.subclip(i * 10, (i + 1) * 10)
-        clip = clip.fx(vfx.lum_contrast, 0, 150, 255)  # optional efek
-        clip = clip.fx(vfx.zoom_in, 1.05)  # zoom jedag
-        filename = f"output/short_{i+1}.mp4"
-        clip.write_videofile(filename)
+    total = int(video.duration)
+    parts = total // SHORTS_DURATION
+
+    for i in range(parts):
+        st = i * SHORTS_DURATION
+        ed = st + SHORTS_DURATION
+        clip = video.subclip(st, ed)
+        clip = clip.fx(vfx.lum_contrast, 0, 150, 255) \
+                   .fx(vfx.zoom_in, 1.05)
+        filename = f"output/short_{i+1:02d}.mp4"
+        clip.write_videofile(filename, codec="libx264", audio_codec="aac")
