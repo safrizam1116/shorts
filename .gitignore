@@ -1,0 +1,7 @@
+*.json
+!.*/credentials_template.json
+auth_token.json
+.env
+logs/
+output/
+upscale/
