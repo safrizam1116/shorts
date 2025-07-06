@@ -8,6 +8,15 @@ from googleapiclient.http import MediaFileUpload
 from oauth2client.file import Storage
 from oauth2client.tools import run_flow
 from oauth2client.client import flow_from_clientsecrets
+from dotenv import load_dotenv
+
+# ======================
+# LOAD ENV
+# ======================
+
+load_dotenv()
+CLIENT_SECRET = os.getenv("CLIENT_SECRET", "credentials_template.json")
+TOKEN_PATH = os.getenv("TOKEN_PATH", "auth_token.json")
 
 # ======================
 # CONFIG
@@ -16,9 +25,7 @@ from oauth2client.client import flow_from_clientsecrets
 OUTPUT_FOLDER = 'output'
 UPSCALE_FOLDER = 'upscale'
 LOG_FILE = 'logs/uploaded.json'
-CLIENT_SECRET = 'credentials.json'
 
-# Buat folder jika belum ada
 os.makedirs(UPSCALE_FOLDER, exist_ok=True)
 os.makedirs('logs', exist_ok=True)
 
@@ -28,7 +35,7 @@ os.makedirs('logs', exist_ok=True)
 
 def get_authenticated_service():
     flow = flow_from_clientsecrets(CLIENT_SECRET, scope="https://www.googleapis.com/auth/youtube.upload")
-    storage = Storage("auth_token.json")
+    storage = Storage(TOKEN_PATH)
     credentials = storage.get()
 
     if credentials is None or credentials.invalid:
@@ -72,7 +79,7 @@ def upload_video(file_path, title="My Shorts"):
                 "title": title,
                 "description": "#shorts",
                 "tags": ["shorts", "viral"],
-                "categoryId": "22"  # People & Blogs
+                "categoryId": "22"
             },
             "status": {
                 "privacyStatus": "public"
@@ -115,7 +122,7 @@ while True:
             print("Selesai. Menunggu jam ganjil berikutnya.")
         else:
             print(f"[{now}] Tidak ada video baru.")
-        time.sleep(3600)  # Tunggu 1 jam supaya tidak dobel
+        time.sleep(3600)
     else:
         print(f"[{now}] Bukan jam ganjil, tidur 1 menit...")
         time.sleep(60)
