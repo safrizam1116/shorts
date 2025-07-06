@@ -1,7 +1,7 @@
-*.json
-!.*/credentials_template.json
-auth_token.json
 .env
+auth_token.json
+*.json
+!credentials_template.json
 logs/
 output/
 upscale/
