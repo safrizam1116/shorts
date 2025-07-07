@@ -1,8 +1,7 @@
 .env
-*.json
-!credentials_template.json
+credentials.json
+*.pyc
+__pycache__/
 logs/
 output/
 final/
-__pycache__/
-*.pyc
