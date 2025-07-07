@@ -1,17 +1,8 @@
-# Abaikan semua file .json (data sensitif)
-*.json
-
-# Tapi tetap izinkan template dummy
-!credentials_template.json
-
-# Abaikan variabel lingkungan (API Key, path rahasia)
 .env
-
-# Abaikan folder dan file lokal (hasil pemrosesan)
+*.json
+!credentials_template.json
 logs/
 output/
-upscale/
-
-# (Opsional) Abaikan file backup / cache
-*.pyc
+final/
 __pycache__/
+*.pyc
