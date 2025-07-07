@@ -1,10 +1,22 @@
 import time
+import schedule
 import datetime
 import os
 import json
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
+from keep_alive import keep_alive
+keep_alive()
+
+def upload_task():
+    # panggil fungsi upload shorts kamu di sini
+    print("Uploading shorts...")
+
+schedule.every().hour.at(":00").do(upload_task)  # setiap jam
+while True:
+    schedule.run_pending()
+    time.sleep(60)
 
 # ==== KONFIGURASI ====
 VIDEO_ID = "1i8iT8IR5nzVNcyLSaue1l5WWNkve0xiR"
