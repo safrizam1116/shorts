@@ -1,7 +1,17 @@
-.env
-auth_token.json
+# Abaikan semua file .json (data sensitif)
 *.json
+
+# Tapi tetap izinkan template dummy
 !credentials_template.json
+
+# Abaikan variabel lingkungan (API Key, path rahasia)
+.env
+
+# Abaikan folder dan file lokal (hasil pemrosesan)
 logs/
 output/
 upscale/
+
+# (Opsional) Abaikan file backup / cache
+*.pyc
+__pycache__/
