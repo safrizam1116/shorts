@@ -1,6 +1,8 @@
 services:
   - type: worker
-    name: youtube-shorts-uploader
-    runtime: python
+    name: shorts-auto-loop
+    env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python auto_uploader.py
+    startCommand: python main.py
+    autoDeploy: true
