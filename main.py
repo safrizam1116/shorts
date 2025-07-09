@@ -1,22 +1,12 @@
 import time
-import schedule
 import datetime
 import os
 import json
+import pytz
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
 from keep_alive import keep_alive
-keep_alive()
-
-def upload_task():
-    # panggil fungsi upload shorts kamu di sini
-    print("Uploading shorts...")
-
-schedule.every().hour.at(":00").do(upload_task)  # setiap jam
-while True:
-    schedule.run_pending()
-    time.sleep(60)
 
 # ==== KONFIGURASI ====
 VIDEO_ID = "1i8iT8IR5nzVNcyLSaue1l5WWNkve0xiR"
@@ -25,62 +15,53 @@ OUTPUT_PATH = "final/short.mp4"
 UPLOAD_LOG = "logs/uploaded.json"
 CLIP_DURATION = 27  # detik
 
-def is_odd_hour():
-    now = datetime.datetime.now()
-    return now.hour % 2 == 1
+# ========== LOGIKA ==========
 
-def has_uploaded_today():
+def get_current_wib_time():
+    utc_now = datetime.datetime.utcnow()
+    wib_now = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
+    return wib_now
+
+def is_upload_time():
+    now = get_current_wib_time()
+    return now.hour % 2 == 1 and now.minute == 0
+
+def get_last_offset():
     if not os.path.exists(UPLOAD_LOG):
-        return False
+        return 0
     with open(UPLOAD_LOG, "r") as f:
-        log = json.load(f)
-    today = datetime.datetime.now().strftime("%Y-%m-%d-%H")
-    return today in log
+        data = json.load(f)
+        return data.get("last_offset", 0)
 
-def save_upload_log():
-    now_key = datetime.datetime.now().strftime("%Y-%m-%d-%H")
+def save_offset(offset):
     os.makedirs("logs", exist_ok=True)
-    if not os.path.exists(UPLOAD_LOG):
-        with open(UPLOAD_LOG, "w") as f:
-            json.dump([], f)
-    with open(UPLOAD_LOG, "r+") as f:
-        log = json.load(f)
-        log.append(now_key)
-        f.seek(0)
-        json.dump(log, f)
-        f.truncate()
+    with open(UPLOAD_LOG, "w") as f:
+        json.dump({"last_offset": offset}, f)
 
-def main():
-    while True:
-        now = datetime.datetime.now()
-        print(f"⏰ Sekarang jam {now.strftime('%H:%M:%S')}")
+def upload_task():
+    print(f"\n⏰ {get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')} WIB | Mulai upload...")
 
-        if is_odd_hour() and not has_uploaded_today():
-            print("🚀 Proses upload dimulai...")
+    try:
+        os.makedirs("input", exist_ok=True)
+        download_from_gdrive(VIDEO_ID, INPUT_PATH)
 
-            try:
-                # 1. Download
-                os.makedirs("input", exist_ok=True)
-                download_from_gdrive(VIDEO_ID, INPUT_PATH)
+        offset = get_last_offset()
+        start_time = offset * CLIP_DURATION
 
-                # 2. Cut video
-                cut_video(INPUT_PATH, OUTPUT_PATH, duration=CLIP_DURATION)
+        cut_video(INPUT_PATH, OUTPUT_PATH, start_time=start_time, duration=CLIP_DURATION)
 
-                # 3. Upload to YouTube
-                upload_video(OUTPUT_PATH, title="🔥 Short Jedag Jedug", description="#shorts #viral")
+        upload_video(OUTPUT_PATH, title="🔥 Short Jedag Jedug", description="#shorts #viral")
 
-                # 4. Simpan log
-                save_upload_log()
+        save_offset(offset + 1)
+        print("✅ Upload sukses!")
 
-                print("✅ Upload sukses.")
+    except Exception as e:
+        print(f"❌ Gagal upload: {e}")
 
-            except Exception as e:
-                print(f"❌ Gagal upload: {e}")
-
-        else:
-            print("⏳ Belum jam ganjil atau sudah upload. Tidur dulu...")
-
-        time.sleep(60 * 60)  # Tidur 1 jam
-
+# ========== MAIN ==========
 if __name__ == "__main__":
-    main()
+    keep_alive()
+    if is_upload_time():
+        upload_task()
+    else:
+        print(f"⏳ Bukan jam ganjil WIB, sekarang {get_current_wib_time().strftime('%H:%M')}. Bot selesai.")
