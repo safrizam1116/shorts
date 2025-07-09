@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 CLIENT_SECRET = os.getenv("CLIENT_SECRET", "/etc/secrets/credentials.json")
-TOKEN_PATH = os.getenv("TOKEN_PATH", "auth_token.json")
+TOKEN_PATH = os.getenv("TOKEN_PATH", "/etc/secrets/auth_token.json")
 
 # ======================
 # CONFIG
@@ -34,13 +34,13 @@ os.makedirs('logs', exist_ok=True)
 # ======================
 
 def get_authenticated_service():
-    flow = flow_from_clientsecrets(CLIENT_SECRET, scope="https://www.googleapis.com/auth/youtube.upload")
     storage = Storage(TOKEN_PATH)
     credentials = storage.get()
 
-    if credentials is None or credentials.invalid:
+    if not credentials or credentials.invalid:
+        flow = flow_from_clientsecrets(CLIENT_SECRET, scope="https://www.googleapis.com/auth/youtube.upload")
         credentials = run_flow(flow, storage)
-    
+
     return build('youtube', 'v3', credentials=credentials)
 
 youtube = get_authenticated_service()
@@ -91,40 +91,38 @@ def upload_video(file_path, title="My Shorts"):
     while response is None:
         status, response = request.next_chunk()
         if status:
-            print(f"Uploading: {int(status.progress() * 100)}%")
-    print(f"Upload selesai: {response['id']}")
+            print(f"📤 Uploading: {int(status.progress() * 100)}%")
+    print(f"✅ Upload selesai → https://youtube.com/watch?v={response['id']}")
 
 # ======================
 # MAIN LOOP
 # ======================
 
-print("Bot upload Shorts 2K aktif...")
+print("🟢 Bot upload Shorts 2K aktif...")
 
 while True:
     now = datetime.now()
     if jam_ganjil():
         video_name = ambil_video_baru()
         if video_name:
-            print(f"[{now}] Menemukan video: {video_name}")
+            print(f"[{now}] 🎞 Menemukan video: {video_name}")
 
             input_path = os.path.join(OUTPUT_FOLDER, video_name)
             output_path = os.path.join(UPSCALE_FOLDER, video_name)
 
-            print("Upscaling ke 2K...")
+            print("🔧 Upscaling ke 2K...")
             upscale_to_2k(input_path, output_path)
 
-            print("Uploading ke YouTube...")
-            upload_video(output_path, title=f"Shorts {now.strftime('%H%M')}")
+            print("📤 Uploading ke YouTube...")
+            upload_video(output_path, title=f"🔥 Shorts {now.strftime('%H:%M')}")
 
             log = load_log()
             log.append(video_name)
             save_log(log)
-            print("Selesai. Menunggu jam ganjil berikutnya.")
+            print("✅ Selesai. Menunggu jam ganjil berikutnya.")
         else:
-            print(f"[{now}] Tidak ada video baru.")
+            print(f"[{now}] ⚠️ Tidak ada video baru.")
         time.sleep(3600)
     else:
-        print(f"[{now}] Bukan jam ganjil, tidur 1 menit...")
+        print(f"[{now}] ⏳ Bukan jam ganjil. Tidur 1 menit...")
         time.sleep(60)
-
-#upload
