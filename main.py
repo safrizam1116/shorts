@@ -3,10 +3,12 @@ import datetime
 import os
 import json
 import pytz
+from threading import Thread
+from flask import Flask
+
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
-from keep_alive import keep_alive
 
 # ==== KONFIGURASI ====
 VIDEO_ID = "1i8iT8IR5nzVNcyLSaue1l5WWNkve0xiR"
@@ -15,8 +17,7 @@ OUTPUT_PATH = "final/short.mp4"
 UPLOAD_LOG = "logs/uploaded.json"
 CLIP_DURATION = 27  # detik
 
-# ========== LOGIKA ==========
-
+# ==== WAKTU WIB ====
 def get_current_wib_time():
     utc_now = datetime.datetime.utcnow()
     wib_now = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
@@ -26,6 +27,7 @@ def is_upload_time():
     now = get_current_wib_time()
     return now.hour % 2 == 1 and now.minute == 0
 
+# ==== OFFSET CLIP ====
 def get_last_offset():
     if not os.path.exists(UPLOAD_LOG):
         return 0
@@ -38,6 +40,7 @@ def save_offset(offset):
     with open(UPLOAD_LOG, "w") as f:
         json.dump({"last_offset": offset}, f)
 
+# ==== PROSES UTAMA ====
 def upload_task():
     print(f"\n⏰ {get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')} WIB | Mulai upload...")
 
@@ -58,9 +61,21 @@ def upload_task():
     except Exception as e:
         print(f"❌ Gagal upload: {e}")
 
-# ========== MAIN ==========
+# ==== FAKE SERVER FOR RENDER ====
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "🟢 Bot Shorts aktif - Web Service mode (Render.com)"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=3000)
+
+# ==== MAIN ====
 if __name__ == "__main__":
-    keep_alive()
+    # Jalankan server Flask di thread terpisah agar tidak blocking
+    Thread(target=run_flask).start()
+
     if is_upload_time():
         upload_task()
     else:
