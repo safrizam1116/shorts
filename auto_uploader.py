@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 # ======================
 
 load_dotenv()
-CLIENT_SECRET = os.getenv("CLIENT_SECRET", "credentials.json")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET", "/etc/secrets/credentials.json")
 TOKEN_PATH = os.getenv("TOKEN_PATH", "auth_token.json")
 
 # ======================
