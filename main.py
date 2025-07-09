@@ -40,7 +40,7 @@ def save_offset(offset):
     with open(UPLOAD_LOG, "w") as f:
         json.dump({"last_offset": offset}, f)
 
-# ==== PROSES UTAMA ====
+# ==== PROSES UPLOAD ====
 def upload_task():
     now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
     print(f"\n⏰ {now} WIB | Mulai upload...")
@@ -62,7 +62,7 @@ def upload_task():
     except Exception as e:
         print(f"❌ Gagal upload: {e}")
 
-# ==== FAKE SERVER FOR RENDER ====
+# ==== FAKE SERVER UNTUK RENDER ====
 app = Flask(__name__)
 
 @app.route('/')
@@ -74,18 +74,15 @@ def run_flask():
 
 # ==== MAIN ====
 if __name__ == "__main__":
-    # Jalankan server Flask agar Render tahu Web Service aktif
+    # Jalankan Flask supaya Render aktif
     Thread(target=run_flask).start()
+    time.sleep(3)  # beri waktu Flask menyala
 
-    # Tunggu 3 detik biar server siap
-    time.sleep(3)
-
-    # Jalankan upload jika jam ganjil
     if is_upload_time():
         upload_task()
     else:
         print(f"⏳ Bukan jam ganjil WIB, sekarang {get_current_wib_time().strftime('%H:%M')}. Bot selesai.")
 
-    # Keep-alive loop
+    # Keep alive
     while True:
         time.sleep(30)
