@@ -5,7 +5,6 @@ import json
 import pytz
 from threading import Thread
 from flask import Flask
-
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
@@ -42,8 +41,8 @@ def save_offset(offset):
 
 # ==== PROSES UPLOAD ====
 def upload_task():
-    now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"\n⏰ {now} WIB | Mulai upload...")
+    now_str = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"\n⏰ {now_str} WIB | Mulai upload...")
 
     try:
         os.makedirs("input", exist_ok=True)
@@ -54,7 +53,8 @@ def upload_task():
 
         cut_video(INPUT_PATH, OUTPUT_PATH, start_time=start_time, duration=CLIP_DURATION)
 
-        upload_video(OUTPUT_PATH, title="🔥 Short Jedag Jedug", description="#shorts #viral")
+        upload_video(OUTPUT_PATH, title=f"🔥 Short Jedag Jedug {get_current_wib_time().strftime('%H:%M')}",
+                     description="#shorts #viral")
 
         save_offset(offset + 1)
         print("✅ Upload sukses!")
@@ -70,19 +70,20 @@ def index():
     return "🟢 Bot Shorts aktif - Web Service mode (Render.com)"
 
 def run_flask():
-    app.run(host="0.0.0.0", port=3000)
+    port = int(os.environ.get("PORT", 3000))  # Render akan set PORT sendiri
+    print(f"🌐 Menjalankan Flask di port {port}...")
+    app.run(host="0.0.0.0", port=port)
 
 # ==== MAIN ====
 if __name__ == "__main__":
-    # Jalankan Flask supaya Render aktif
     Thread(target=run_flask).start()
-    time.sleep(3)  # beri waktu Flask menyala
+    time.sleep(3)  # beri waktu agar server aktif dan Render deteksi port
 
     if is_upload_time():
         upload_task()
     else:
-        print(f"⏳ Bukan jam ganjil WIB, sekarang {get_current_wib_time().strftime('%H:%M')}. Bot selesai.")
+        now = get_current_wib_time().strftime('%H:%M')
+        print(f"⏳ Bukan jam ganjil WIB (sekarang {now}). Bot selesai.")
 
-    # Keep alive
     while True:
-        time.sleep(30)
+        time.sleep(30)  # keep alive
