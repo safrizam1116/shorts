@@ -126,3 +126,5 @@ while True:
     else:
         print(f"[{now}] Bukan jam ganjil, tidur 1 menit...")
         time.sleep(60)
+
+#upload
