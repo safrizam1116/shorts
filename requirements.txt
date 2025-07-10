@@ -1,13 +1,8 @@
-moviepy
-schedule
-ffmpeg-python
-python-dotenv
-
-# Google API libraries
+Flask
+pytz
 google-api-python-client
 oauth2client
-google-auth
-google-auth-oauthlib
-pytz
-flask
+moviepy
+python-dotenv
+requests
 gdown
