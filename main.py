@@ -17,7 +17,7 @@ OUTPUT_PATH = "final/short.mp4"
 UPLOAD_LOG = "logs/uploaded.json"
 CLIP_DURATION = 27  # detik
 
-# ==== STATUS ON/OFF ====
+# ==== STATUS BOT ====
 BOT_STATUS = {"status": "ON"}
 
 # ==== WAKTU WIB ====
@@ -43,7 +43,7 @@ def save_offset(offset):
     with open(UPLOAD_LOG, "w") as f:
         json.dump({"last_offset": offset}, f)
 
-# ==== PROSES UTAMA ====
+# ==== PROSES UPLOAD ====
 def upload_task():
     now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
     print(f"\n⏰ {now} WIB | Mulai upload...")
@@ -65,42 +65,39 @@ def upload_task():
     except Exception as e:
         print(f"❌ Gagal upload: {e}")
 
-# ==== FLASK SERVER ====
+# ==== FLASK APP ====
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return "🟢 Bot Shorts aktif - Render Web Service"
+    return "🟢 Bot Shorts aktif - Render.com Web Service", 200
 
-@app.route('/status', methods=["GET", "POST"])
+@app.route('/status', methods=['GET', 'POST'])
 def status():
     global BOT_STATUS
-    if request.method == "POST":
-        data = request.get_json()
-        if data and "status" in data:
-            BOT_STATUS["status"] = data["status"].upper()
-            print(f"⚙️ Status bot diubah jadi: {BOT_STATUS['status']}")
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            BOT_STATUS["status"] = data.get("status", "ON").upper()
+            print(f"⚙️ Status bot diubah ke: {BOT_STATUS['status']}")
             return jsonify(BOT_STATUS)
-        else:
-            return jsonify({"error": "Invalid request"}), 400
+        except:
+            return jsonify({"error": "Bad request"}), 400
     return jsonify(BOT_STATUS)
 
 def run_flask():
-    app.run(host="0.0.0.0", port=3000)
+    port = int(os.environ.get("PORT", 3000))
+    app.run(host='0.0.0.0', port=port)
 
 # ==== MAIN ====
 if __name__ == "__main__":
     Thread(target=run_flask).start()
     time.sleep(3)
 
-    now = get_current_wib_time().strftime('%H:%M')
-    if BOT_STATUS["status"] == "ON":
-        if is_upload_time():
-            upload_task()
-        else:
-            print(f"⏳ Bukan jam ganjil WIB (sekarang {now}). Bot akan tidur.")
+    if BOT_STATUS["status"] == "ON" and is_upload_time():
+        upload_task()
     else:
-        print("⛔ Bot OFF. Tidak akan melakukan upload.")
+        print(f"⏳ Bot status: {BOT_STATUS['status']}. Jam: {get_current_wib_time().strftime('%H:%M')} WIB.")
 
     while True:
         time.sleep(30)
