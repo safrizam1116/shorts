@@ -5,6 +5,7 @@ import json
 import pytz
 from threading import Thread
 from flask import Flask
+
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
@@ -14,29 +15,19 @@ VIDEO_ID = "1i8iT8IR5nzVNcyLSaue1l5WWNkve0xiR"
 INPUT_PATH = "input/video.mp4"
 OUTPUT_PATH = "final/short.mp4"
 UPLOAD_LOG = "logs/uploaded.json"
-CLIP_DURATION = 27  # durasi Shorts (detik)
-
-# ==== SERVER FLASK ====
-app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "✅ Bot Shorts aktif - Render.com"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 3000))  # WAJIB agar Render mendeteksi
-    app.run(host="0.0.0.0", port=port)
+CLIP_DURATION = 27  # detik
 
 # ==== WAKTU WIB ====
 def get_current_wib_time():
     utc_now = datetime.datetime.utcnow()
-    return utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
+    wib_now = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
+    return wib_now
 
 def is_upload_time():
     now = get_current_wib_time()
-    return now.hour % 2 == 1 and now.minute == 0  # jam ganjil, menit ke-00
+    return now.hour % 2 == 1 and now.minute == 0
 
-# ==== OFFSET LOGIC ====
+# ==== OFFSET CLIP ====
 def get_last_offset():
     if not os.path.exists(UPLOAD_LOG):
         return 0
@@ -51,8 +42,8 @@ def save_offset(offset):
 
 # ==== PROSES UTAMA ====
 def upload_task():
-    now = get_current_wib_time()
-    print(f"\n⏰ {now.strftime('%Y-%m-%d %H:%M:%S')} WIB | Mulai upload...")
+    now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"\n⏰ {now} WIB | Mulai upload...")
 
     try:
         os.makedirs("input", exist_ok=True)
@@ -71,17 +62,32 @@ def upload_task():
     except Exception as e:
         print(f"❌ Gagal upload: {e}")
 
+# ==== FAKE SERVER FOR RENDER ====
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return "✅ Bot Shorts aktif - Render.com"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8003))  # default ke 8003 jika tidak ada env PORT
+    print(f"🌐 Flask listening on port {port}")
+    app.run(host="0.0.0.0", port=port)
+
 # ==== MAIN ====
 if __name__ == "__main__":
-    Thread(target=run_flask).start()  # server Flask agar Render tetap ON
-    time.sleep(3)  # tunggu server siap
+    # Jalankan server Flask agar Render tahu Web Service aktif
+    Thread(target=run_flask).start()
 
+    # Tunggu 3 detik agar Flask siap
+    time.sleep(3)
+
+    # Jalankan upload jika jam ganjil
     if is_upload_time():
         upload_task()
     else:
-        now = get_current_wib_time()
-        print(f"⏳ Bukan jam ganjil WIB, sekarang {now.strftime('%H:%M')}. Bot selesai.")
+        print(f"⏳ Bukan jam ganjil WIB, sekarang {get_current_wib_time().strftime('%H:%M')}. Bot standby.")
 
-    # Keep-alive loop agar service tetap ON
+    # Keep-alive loop agar service tetap hidup
     while True:
         time.sleep(30)
