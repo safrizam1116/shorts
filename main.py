@@ -1,10 +1,10 @@
-import time
-import datetime
 import os
 import json
+import time
+import datetime
 import pytz
-from threading import Thread
 from flask import Flask
+from threading import Thread
 
 from downloader import download_from_gdrive
 from cutter import cut_video
@@ -18,28 +18,20 @@ UPLOAD_LOG = "logs/uploaded.json"
 CLIP_DURATION = 27  # detik
 
 app = Flask(__name__)
-status_flag = {"active": False}  # indikator status bot
+status = {"last_upload": "-", "status": "Bot aktif, belum upload"}
 
-@app.route("/")
-def index():
-    if status_flag["active"]:
-        return "🟢 Bot aktif dan berjalan normal"
-    else:
-        return "⚠️ Bot standby, menunggu jadwal upload"
-
-def run_web():
-    print("🌐 Web server aktif di port 3000")
-    app.run(host="0.0.0.0", port=3000)
-
+# === WIB TIME ===
 def get_current_wib_time():
     utc_now = datetime.datetime.utcnow()
-    wib_now = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
-    return wib_now
+    wib = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
+    return wib
 
+# === CEK JAM GANJIL ===
 def is_upload_time():
     now = get_current_wib_time()
     return now.hour % 2 == 1 and now.minute == 0
 
+# === OFFSET CLIP ===
 def get_last_offset():
     if not os.path.exists(UPLOAD_LOG):
         return 0
@@ -52,11 +44,10 @@ def save_offset(offset):
     with open(UPLOAD_LOG, "w") as f:
         json.dump({"last_offset": offset}, f)
 
+# === UPLOAD TASK ===
 def upload_task():
-    now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"\n⏰ {now} WIB | Mulai upload...")
-
     try:
+        print(f"⏰ {get_current_wib_time().strftime('%H:%M:%S')} WIB | Mulai upload...")
         os.makedirs("input", exist_ok=True)
         download_from_gdrive(VIDEO_ID, INPUT_PATH)
 
@@ -64,23 +55,43 @@ def upload_task():
         start_time = offset * CLIP_DURATION
 
         cut_video(INPUT_PATH, OUTPUT_PATH, start_time=start_time, duration=CLIP_DURATION)
-        upload_video(OUTPUT_PATH, title=f"🔥 Shorts {get_current_wib_time().strftime('%H:%M')}")
+        upload_video(OUTPUT_PATH, title="🔥 Short Jedag Jedug", description="#shorts #viral")
 
         save_offset(offset + 1)
-        print("✅ Upload sukses!")
+        status["status"] = "✅ Upload sukses"
+        status["last_upload"] = get_current_wib_time().strftime("%Y-%m-%d %H:%M:%S")
+
+        print("✅ Upload selesai!")
 
     except Exception as e:
+        status["status"] = f"❌ Gagal upload: {str(e)}"
         print(f"❌ Gagal upload: {e}")
 
-# === MAIN ===
-if __name__ == "__main__":
-    Thread(target=run_web).start()
-    time.sleep(2)  # beri waktu Flask nyala
+# === FLASK APP UNTUK RENDER.COM ===
+@app.route('/')
+def home():
+    return f"""
+    <h3>🟢 Bot Shorts Aktif</h3>
+    <p>Status: {status["status"]}</p>
+    <p>Last Upload: {status["last_upload"]}</p>
+    <p>Time (WIB): {get_current_wib_time().strftime("%Y-%m-%d %H:%M:%S")}</p>
+    """
 
-    if is_upload_time():
-        status_flag["active"] = True
-        upload_task()
-        status_flag["active"] = False
-    else:
-        now = get_current_wib_time().strftime('%H:%M')
-        print(f"⏳ Bukan jam ganjil WIB (sekarang {now}), bot tidak aktif")
+def run_flask():
+    app.run(host="0.0.0.0", port=3000)
+
+# === MAIN LOOP ===
+def bot_loop():
+    while True:
+        if is_upload_time():
+            upload_task()
+            time.sleep(65)  # tunggu lewat 1 menit agar tidak dobel
+        else:
+            print(f"⏳ {get_current_wib_time().strftime('%H:%M:%S')} WIB | Bukan jam ganjil.")
+            time.sleep(30)
+
+if __name__ == "__main__":
+    print("🚀 Bot Shorts Render Web Service dimulai...")
+    Thread(target=run_flask).start()
+    time.sleep(2)
+    bot_loop()
