@@ -5,7 +5,6 @@ import json
 import pytz
 from threading import Thread
 from flask import Flask
-
 from downloader import download_from_gdrive
 from cutter import cut_video
 from auto_uploader import upload_video
@@ -15,19 +14,29 @@ VIDEO_ID = "1i8iT8IR5nzVNcyLSaue1l5WWNkve0xiR"
 INPUT_PATH = "input/video.mp4"
 OUTPUT_PATH = "final/short.mp4"
 UPLOAD_LOG = "logs/uploaded.json"
-CLIP_DURATION = 27  # detik
+CLIP_DURATION = 27  # durasi Shorts (detik)
+
+# ==== SERVER FLASK ====
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "✅ Bot Shorts aktif - Render.com"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 3000))  # WAJIB agar Render mendeteksi
+    app.run(host="0.0.0.0", port=port)
 
 # ==== WAKTU WIB ====
 def get_current_wib_time():
     utc_now = datetime.datetime.utcnow()
-    wib_now = utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
-    return wib_now
+    return utc_now.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Asia/Jakarta"))
 
 def is_upload_time():
     now = get_current_wib_time()
-    return now.hour % 2 == 1 and now.minute == 0
+    return now.hour % 2 == 1 and now.minute == 0  # jam ganjil, menit ke-00
 
-# ==== OFFSET CLIP ====
+# ==== OFFSET LOGIC ====
 def get_last_offset():
     if not os.path.exists(UPLOAD_LOG):
         return 0
@@ -40,10 +49,10 @@ def save_offset(offset):
     with open(UPLOAD_LOG, "w") as f:
         json.dump({"last_offset": offset}, f)
 
-# ==== PROSES UPLOAD ====
+# ==== PROSES UTAMA ====
 def upload_task():
-    now = get_current_wib_time().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"\n⏰ {now} WIB | Mulai upload...")
+    now = get_current_wib_time()
+    print(f"\n⏰ {now.strftime('%Y-%m-%d %H:%M:%S')} WIB | Mulai upload...")
 
     try:
         os.makedirs("input", exist_ok=True)
@@ -62,30 +71,17 @@ def upload_task():
     except Exception as e:
         print(f"❌ Gagal upload: {e}")
 
-# ==== FAKE SERVER UNTUK RENDER.COM ====
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return "🟢 Bot Shorts aktif 24 jam (Render Web Service OK)"
-
-def run_flask():
-    app.run(host="0.0.0.0", port=3000)
-
 # ==== MAIN ====
 if __name__ == "__main__":
-    # 1. Mulai fake web server
-    Thread(target=run_flask).start()
+    Thread(target=run_flask).start()  # server Flask agar Render tetap ON
+    time.sleep(3)  # tunggu server siap
 
-    # 2. Tunggu biar Render mendeteksi port
-    time.sleep(3)
-
-    # 3. Jalankan upload jika jam ganjil WIB
     if is_upload_time():
         upload_task()
     else:
-        print(f"⏳ Bukan jam ganjil WIB, sekarang {get_current_wib_time().strftime('%H:%M')}")
+        now = get_current_wib_time()
+        print(f"⏳ Bukan jam ganjil WIB, sekarang {now.strftime('%H:%M')}. Bot selesai.")
 
-    # 4. Loop agar tetap hidup dan aktif 24 jam
+    # Keep-alive loop agar service tetap ON
     while True:
         time.sleep(30)
