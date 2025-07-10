@@ -1,8 +1,10 @@
-Flask
+flask
 pytz
-google-api-python-client
-oauth2client
+ffmpeg-python
 moviepy
-python-dotenv
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
 requests
-gdown
+python-dotenv
